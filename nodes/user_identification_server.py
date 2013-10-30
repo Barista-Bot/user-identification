@@ -93,6 +93,7 @@ class UserIdentifierServer(dbus.service.Object):
 
         s = rospy.Service(self.PKG_NAME+'/definePerson', self.ros_srv.definePerson, lambda req: self.definePerson(req.id))
         s = rospy.Service(self.PKG_NAME+'/exit', std_srvs.srv.Empty, lambda req: self.exit())
+        s = rospy.Service(self.PKG_NAME+'/queryPerson', self.ros_srv.queryPerson, lambda req: self.queryPerson())
         
     @dbus.service.method(Interface_Name, in_signature='i', out_signature='b')
     def definePerson(self, person_id):
@@ -107,6 +108,10 @@ class UserIdentifierServer(dbus.service.Object):
         self.face_identifier.update(np.asarray([face_img]), np.asarray([person_id]))
 
         return True
+
+    def queryPerson(self):
+        # To be implemented
+        return 0, 0
 
     def getFrame(self):
         rval, frame = self.vc.read()
