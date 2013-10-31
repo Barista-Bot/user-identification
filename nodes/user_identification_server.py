@@ -141,13 +141,17 @@ class UserIdentifierServer(dbus.service.Object):
         roslib.load_manifest(self.PKG_NAME)
         self.ros_srv = importlib.import_module(self.PKG_NAME+'.srv')
         rospy.init_node(self.NODE_NAME)
+        rospy.on_shutdown(lambda: self.exit())
 
-        s = rospy.Service(self.PKG_NAME+'/definePerson', self.ros_srv.definePerson, lambda req: self.definePerson(req.id))
-        s = rospy.Service(self.PKG_NAME+'/exit', std_srvs.srv.Empty, lambda req: self.exit())
-        s = rospy.Service(self.PKG_NAME+'/queryPerson', self.ros_srv.queryPerson, lambda req: self.queryPerson())
-        
+        self.rospy_services = [
+            rospy.Service(self.PKG_NAME+'/definePerson', self.ros_srv.definePerson, lambda req: self.definePerson(req.id)),
+            rospy.Service(self.PKG_NAME+'/queryPerson', self.ros_srv.queryPerson, lambda req: self.queryPerson()),
+            rospy.Service(self.PKG_NAME+'/exit', std_srvs.srv.Empty, lambda req: self.exit(from_ros_service=True)),
+        ]
+  
     @dbus.service.method(Interface_Name, in_signature='i', out_signature='b')
     def definePerson(self, person_id):
+        self.dsfsdf()
         face_rect = None
         while not face_rect:
             frame = self.vs.getFrame()
@@ -176,8 +180,10 @@ class UserIdentifierServer(dbus.service.Object):
             return is_person, is_known_person, person_id, confidence     
 
     @dbus.service.method(Interface_Name)
-    def exit(self):
+    def exit(self, from_ros_service=False):
         self.main_loop.quit()
+        if from_ros_service:
+            return std_srvs.srv.EmptyResponse()
 
     def spinOnce(self):
         frame = self.vs.getFrame()
@@ -205,6 +211,7 @@ def main():
     try:
         main_loop.run()
     except KeyboardInterrupt:
+        main_loop.quit()
         raise SystemExit(0)
 
 if __name__ == "__main__":
