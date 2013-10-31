@@ -53,12 +53,14 @@ class FaceRecogniserAlgorithm(object):
         self.cv_face_rec.save(self.Model_File)
 
     def predict(self, *args):
+        is_known_person, person_id, confidence = False, 0, 0
         if self.trained:
             person_id, confidence = self.cv_face_rec.predict(*args)
             confidence = 100 - confidence
-            return person_id, confidence
-        else:
-            return None, -1
+            if confidence > 10:
+                is_known_person = True
+
+        return is_known_person, person_id, confidence
 
 class UserIdentifierServer(dbus.service.Object):
     Bus_Name = 'org.BaristaBot.user_id'
@@ -109,9 +111,19 @@ class UserIdentifierServer(dbus.service.Object):
 
         return True
 
+    @dbus.service.method(Interface_Name, out_signature='bbii')
     def queryPerson(self):
-        # To be implemented
-        return 0, 0
+        is_person, is_known_person = False, False
+        person_id, confidence = 0, 0
+
+        frame = self.getFrame()
+        face_rect = self.findLargestFaceInImage(frame)
+        if face_rect:
+            is_person = True
+            face_img = self.subimage(frame, face_rect)
+            is_known_person, person_id, confidence = self.face_identifier.predict(self.col2bw(face_img))
+            
+        return is_person, is_known_person, person_id, confidence
 
     def getFrame(self):
         rval, frame = self.vc.read()
@@ -158,8 +170,8 @@ class UserIdentifierServer(dbus.service.Object):
         if face_rect:
             self.drawBoxesOnImage([face_rect], frame)
             face_img = self.subimage(frame, face_rect)
-            person_id, confidence = self.face_identifier.predict(self.col2bw(face_img))
-            if person_id != None:
+            is_known_person, person_id, confidence = self.face_identifier.predict(self.col2bw(face_img))
+            if is_known_person:
                 label = str(person_id)
                 cv2.putText(frame, label+', '+str(confidence), (face_rect.pt1.x, face_rect.pt1.y+30), cv2.FONT_HERSHEY_SIMPLEX, 1, (127, 255, 0))
 
