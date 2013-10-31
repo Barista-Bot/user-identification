@@ -16,6 +16,20 @@ import rospy
 import std_srvs.srv
 import importlib
 
+class Util(object):
+    @staticmethod    
+    def subimage(img, rect):
+        return img[rect.pt1.y:rect.pt2.y,  rect.pt1.x:rect.pt2.x]
+
+    @staticmethod        
+    def col2bw(img):
+        return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    @staticmethod        
+    def drawBoxesOnImage(rects, img):
+        for rect in rects:
+            cv2.rectangle(img, rect.pt1, rect.pt2, (127, 255, 0), 2)
+
 class Rect(object):
     Point = namedtuple('Point', 'x y')
 
@@ -34,7 +48,7 @@ class Rect(object):
     def area(self):
         return self.width() * self.height()
 
-class FaceRecogniserAlgorithm(object):
+class FaceIdentifier(object):
     Model_File = '/tmp/face_rec_model'
 
     def __init__(self):
@@ -47,20 +61,56 @@ class FaceRecogniserAlgorithm(object):
         except cv2.error:
             self.trained = False
 
-    def update(self, *args):
-        self.cv_face_rec.update(*args)
+    def update(self, face_img, person_id):
+        face_img = Util.col2bw(face_img)
+        self.cv_face_rec.update(np.asarray([face_img]), np.asarray([person_id]))
         self.trained = True
         self.cv_face_rec.save(self.Model_File)
 
-    def predict(self, *args):
+    def predict(self, face_img):
+        face_img = Util.col2bw(face_img)
         is_known_person, person_id, confidence = False, 0, 0
         if self.trained:
-            person_id, confidence = self.cv_face_rec.predict(*args)
+            person_id, confidence = self.cv_face_rec.predict(face_img)
             confidence = 100 - confidence
             if confidence > 10:
                 is_known_person = True
 
         return is_known_person, person_id, confidence
+
+class FaceFinder(object):
+    def __init__(self):
+        self.face_detector = cv2.CascadeClassifier("/usr/share/opencv/haarcascades/haarcascade_frontalface_alt.xml")
+        
+    def findFacesInImage(self, img):
+        rects = self.face_detector.detectMultiScale(img, 1.3, 4, cv2.cv.CV_HAAR_SCALE_IMAGE, (20,20))
+        rects = [Rect(r) for r in rects]
+        return rects
+
+    def findLargestFaceInImage(self, img):
+        rects = self.findFacesInImage(img)
+        max_size = 0
+        max_rect = None
+
+        for rect in rects:
+            size = rect.width()
+            if size >= max_size:
+                max_size = size
+                max_rect = rect
+
+        return max_rect
+
+class VideoSource(object):
+    def __init__(self):
+        self.vc = cv2.VideoCapture(0)
+
+    def getFrame(self):
+        rval, frame = self.vc.read()
+        if not rval:
+            raise Exception('Video failed')
+        return frame
+
+        
 
 class UserIdentifierServer(dbus.service.Object):
     Bus_Name = 'org.BaristaBot.user_id'
@@ -75,10 +125,9 @@ class UserIdentifierServer(dbus.service.Object):
         self.initRosNode()
 
         self.main_loop = main_loop
-        cv2.namedWindow("face-id")
-        self.vc = cv2.VideoCapture(0)
-        self.face_detector = cv2.CascadeClassifier("/usr/share/opencv/haarcascades/haarcascade_frontalface_alt.xml")
-        self.face_identifier = FaceRecogniserAlgorithm()
+        self.vs = VideoSource()
+        self.face_identifier = FaceIdentifier()
+        self.face_finder = FaceFinder()
 
     def initDbus(self):
         session = dbus.SessionBus()
@@ -101,76 +150,41 @@ class UserIdentifierServer(dbus.service.Object):
     def definePerson(self, person_id):
         face_rect = None
         while not face_rect:
-            frame = self.getFrame()
-            face_rect = self.findLargestFaceInImage(frame)
-        face_img = self.col2bw(self.subimage(frame, face_rect))
-
+            frame = self.vs.getFrame()
+            face_rect = self.face_finder.findLargestFaceInImage(frame)
+        face_img = Util.subimage(frame, face_rect)
         cv2.imshow("train", face_img)
-
-        self.face_identifier.update(np.asarray([face_img]), np.asarray([person_id]))
+        self.face_identifier.update(face_img, person_id)
 
         return True
 
     @dbus.service.method(Interface_Name, out_signature='bbii')
-    def queryPerson(self):
+    def queryPerson(self, ret_rect=False):
         is_person, is_known_person = False, False
         person_id, confidence = 0, 0
 
-        frame = self.getFrame()
-        face_rect = self.findLargestFaceInImage(frame)
+        frame = self.vs.getFrame()
+        face_rect = self.face_finder.findLargestFaceInImage(frame)
         if face_rect:
             is_person = True
-            face_img = self.subimage(frame, face_rect)
-            is_known_person, person_id, confidence = self.face_identifier.predict(self.col2bw(face_img))
-            
-        return is_person, is_known_person, person_id, confidence
+            face_img = Util.subimage(frame, face_rect)
+            is_known_person, person_id, confidence = self.face_identifier.predict(face_img)
 
-    def getFrame(self):
-        rval, frame = self.vc.read()
-        if not rval:
-            self.exit()
-        return frame
-
-    def subimage(self, img, rect):
-        return img[rect.pt1.y:rect.pt2.y,  rect.pt1.x:rect.pt2.x]
-
-    def col2bw(self, img):
-        return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-
-    def findFacesInImage(self, img):
-        rects = self.face_detector.detectMultiScale(img, 1.3, 4, cv2.cv.CV_HAAR_SCALE_IMAGE, (20,20))
-        rects = [Rect(r) for r in rects]
-        return rects
-
-    def findLargestFaceInImage(self, img):
-        rects = self.findFacesInImage(img)
-        max_size = 0
-        max_rect = None
-
-        for rect in rects:
-            size = rect.width()
-            if size >= max_size:
-                max_size = size
-                max_rect = rect
-
-        return max_rect
-
-    def drawBoxesOnImage(self, rects, img):
-        for rect in rects:
-            cv2.rectangle(img, rect.pt1, rect.pt2, (127, 255, 0), 2)
+        if ret_rect:
+            return is_person, is_known_person, person_id, confidence, face_rect
+        else:
+            return is_person, is_known_person, person_id, confidence     
 
     @dbus.service.method(Interface_Name)
     def exit(self):
         self.main_loop.quit()
 
     def spinOnce(self):
-        frame = self.getFrame()
+        frame = self.vs.getFrame()
 
-        face_rect = self.findLargestFaceInImage(frame)
-        if face_rect:
-            self.drawBoxesOnImage([face_rect], frame)
-            face_img = self.subimage(frame, face_rect)
-            is_known_person, person_id, confidence = self.face_identifier.predict(self.col2bw(face_img))
+        is_person, is_known_person, person_id, confidence, face_rect = self.queryPerson(ret_rect=True)
+        if is_person:
+            Util.drawBoxesOnImage([face_rect], frame)
             if is_known_person:
                 label = str(person_id)
                 cv2.putText(frame, label+', '+str(confidence), (face_rect.pt1.x, face_rect.pt1.y+30), cv2.FONT_HERSHEY_SIMPLEX, 1, (127, 255, 0))
