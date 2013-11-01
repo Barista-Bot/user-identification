@@ -17,7 +17,6 @@ Usage
 To do
 ------
 
-- Factor out separate classes for individual components
 - Ability to obtain video feed from ROS
 - Ability to disable GUI
 - Make training data file permanent
