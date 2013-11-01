@@ -17,7 +17,6 @@ Usage
 To do
 ------
 
-- Ability to obtain video feed from ROS
 - Ability to disable GUI
 - Make training data file permanent
 - Improve face finding
