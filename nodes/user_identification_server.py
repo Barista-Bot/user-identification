@@ -1,5 +1,6 @@
 #!/usr/bin/env python2
 
+import os
 import cv2
 import gobject
 gobject.threads_init()
@@ -23,13 +24,24 @@ class UserIdentifierServer(dbus.service.Object):
     NODE_NAME = 'user_identification_server'
 
     def __init__(self, main_loop):
+        self.main_loop = main_loop
         self.initDbus()
         self.initRosNode()
+        self.getConfiguration()
 
-        self.main_loop = main_loop
-        self.vs = video.DirectVideoSource()
-        self.face_identifier = face.identification.FaceIdentifier()
-        self.face_finder = face.finding.FaceFinder1()
+    def getConfiguration(self):
+        # Get classes to be used
+        for i in [
+            {'store_to':'vs',              'ros_param':'~videosource',    'default_class':'DirectVideoSource', 'from_module':video},
+            {'store_to':'face_identifier', 'ros_param':'~faceidentifier', 'default_class':'FaceIdentifier',    'from_module':face.identification},
+            {'store_to':'face_finder',     'ros_param':'~facefinder',     'default_class':'FaceFinder1',       'from_module':face.finding},
+        ]:
+            try:
+                class_name = rospy.get_param(i['ros_param'])
+            except KeyError:
+                class_name = i['default_class']
+            setattr(self, i['store_to'], getattr(i['from_module'], class_name)())
+
 
     def initDbus(self):
         session = dbus.SessionBus()
@@ -107,6 +119,8 @@ class UserIdentifierServer(dbus.service.Object):
 def main():
     main_loop = gobject.MainLoop()
     server = UserIdentifierServer(main_loop)
+
+    rospy.set_param('~something', 43)
 
     gobject.timeout_add(50, server.spinOnce)
 
