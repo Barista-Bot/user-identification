@@ -1,6 +1,5 @@
 #!/usr/bin/env python2
 
-import os
 import cv2
 import gobject
 gobject.threads_init()
@@ -13,7 +12,7 @@ import roslib
 import rospy
 import std_srvs.srv
 import importlib
-from user_identification import util, video, face
+from user_identification import util, video, face, gui
 
 class UserIdentifierServer(dbus.service.Object):
     Bus_Name = 'org.BaristaBot.user_id'
@@ -30,7 +29,14 @@ class UserIdentifierServer(dbus.service.Object):
         self.getConfiguration()
 
     def getConfiguration(self):
-        # Get classes to be used
+        # Enable/disable GUI
+        try:
+            use_gui = rospy.get_param('~gui')
+        except KeyError:
+            use_gui = False
+        self.gui = gui.Gui() if use_gui else gui.NoGui()
+
+        # Get other classes to be used
         for i in [
             {'store_to':'vs',              'ros_param':'~videosource',    'default_class':'DirectVideoSource', 'from_module':video},
             {'store_to':'face_identifier', 'ros_param':'~faceidentifier', 'default_class':'FaceIdentifier',    'from_module':face.identification},
@@ -69,7 +75,7 @@ class UserIdentifierServer(dbus.service.Object):
             frame = self.vs.getFrame()
             face_rect = self.face_finder.findLargestFaceInImage(frame)
         face_img = util.subimage(frame, face_rect)
-        cv2.imshow("train", face_img)
+        self.gui.showTrainingImage(face_img)
         self.face_identifier.update(face_img, person_id)
 
         return True
@@ -99,28 +105,13 @@ class UserIdentifierServer(dbus.service.Object):
 
     def spinOnce(self):
         self.face_finder.spinOnce()
-
-        frame = self.vs.getFrame()
-
-        is_person, is_known_person, person_id, confidence, face_rect = self.queryPerson(ret_rect=True)
-        if is_person:
-            util.drawBoxesOnImage([face_rect], frame)
-            if is_known_person:
-                label = str(person_id)
-                cv2.putText(frame, label+', '+str(confidence), (face_rect.pt1.x, face_rect.pt1.y+30), cv2.FONT_HERSHEY_SIMPLEX, 1, (127, 255, 0))
-
-        cv2.imshow("face-id", frame)
-
-        key = cv2.waitKey(20)
-        if key == 27:
-            self.exit()
+        self.gui.spinOnce(self)
         return True
+
 
 def main():
     main_loop = gobject.MainLoop()
     server = UserIdentifierServer(main_loop)
-
-    rospy.set_param('~something', 43)
 
     gobject.timeout_add(50, server.spinOnce)
 

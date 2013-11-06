@@ -8,8 +8,8 @@ from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 import time
 
-DEFAULT_ROS_VIDEO_TOPIC = "/v4l/camera/image_raw"
-# DEFAULT_ROS_VIDEO_TOPIC = "/rgb/image_raw"
+# DEFAULT_ROS_VIDEO_TOPIC = "/v4l/camera/image_raw"
+DEFAULT_ROS_VIDEO_TOPIC = "/rgb/image_raw"
 
 class AbstractVideoSource(object):
     __metaclass__  = ABCMeta
