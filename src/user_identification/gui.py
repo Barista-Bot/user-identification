@@ -6,11 +6,11 @@ import util
 
 class Gui(object):
     def spinOnce(self, server):
-        frame = server.vs.getFrame()
+        is_person, is_known_person, person_id, confidence, face_rect = server.face_engine.queryPerson()
+        frame = server.face_engine.video_source.getFrame()
 
-        is_person, is_known_person, person_id, confidence, face_rect = server.queryPerson(ret_rect=True)
         if is_person:
-            util.drawBoxesOnImage([face_rect], frame)
+            frame = util.drawBoxesOnImage([face_rect], frame)
             if is_known_person:
                 label = str(person_id)
                 cv2.putText(frame, label+', '+str(confidence), (face_rect.pt1.x, face_rect.pt1.y+30), cv2.FONT_HERSHEY_SIMPLEX, 1, (127, 255, 0))

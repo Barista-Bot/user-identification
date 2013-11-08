@@ -1,6 +1,7 @@
 #!/usr/bin/env python2
 
 import cv2
+import numpy as np
 from collections import namedtuple
 
 def subimage(img, rect):
@@ -9,9 +10,11 @@ def subimage(img, rect):
 def col2bw(img):
     return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-def drawBoxesOnImage(rects, img):
+def drawBoxesOnImage(rects, in_img):
+    img = np.copy(in_img)
     for rect in rects:
         cv2.rectangle(img, rect.pt1, rect.pt2, (127, 255, 0), 2)
+    return img
 
 
 class Rect(object):

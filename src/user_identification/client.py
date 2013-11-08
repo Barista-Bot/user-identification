@@ -10,11 +10,13 @@ QUERY_PERSON_SERVICE_NAME = PKG_NAME+'/queryPerson'
 
 QueryPersonResult = namedtuple('QueryPersonResult', 'is_person is_known_person id confidence')
 
+
 def definePerson(person_id):
     rospy.wait_for_service(DEFINE_PERSON_SERVICE_NAME)
     func = rospy.ServiceProxy(DEFINE_PERSON_SERVICE_NAME, srv.definePerson)
     result = func(person_id)
     return result.ret
+
 
 def queryPerson():
     rospy.wait_for_service(QUERY_PERSON_SERVICE_NAME)

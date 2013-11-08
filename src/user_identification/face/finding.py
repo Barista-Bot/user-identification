@@ -4,18 +4,14 @@ import cv2
 from abc import ABCMeta, abstractmethod
 from .. import util
 
+
 class AbstractFaceFinder(object):
-    __metaclass__  = ABCMeta
+    __metaclass__ = ABCMeta
 
     @abstractmethod
     def findLargestFaceInImage(self, img):
         """Returns a rectangle for the largest face in the image, or None if one doesn't exist"""
         pass
-
-    def spinOnce(self):
-        """Can optionally be overridden, for functionality which should occur repeatedly in the background"""
-        pass
-
 
 
 class FaceFinder1(AbstractFaceFinder):

@@ -6,14 +6,20 @@ import numpy as np
 from .. import util
 
 class FaceIdentifier(object):
-    Model_File = '/tmp/face_rec_model'
-
-    def __init__(self):
+    def __init__(self, data_dir='/tmp/user_identification'):
+        try: 
+            os.makedirs(data_dir)
+        except OSError:
+            if not os.path.isdir(data_dir):
+                raise
+        
+        self.model_file = os.path.join(data_dir, 'face_rec_model')
+        
         self.cv_face_rec = cv2.createLBPHFaceRecognizer()
         try:
-            if not os.path.exists(self.Model_File):
+            if not os.path.exists(self.model_file):
                 raise cv2.error
-            self.cv_face_rec.load(self.Model_File)
+            self.cv_face_rec.load(self.model_file)
             self.trained = True
         except cv2.error:
             self.trained = False
@@ -22,7 +28,7 @@ class FaceIdentifier(object):
         face_img = util.col2bw(face_img)
         self.cv_face_rec.update(np.asarray([face_img]), np.asarray([person_id]))
         self.trained = True
-        self.cv_face_rec.save(self.Model_File)
+        self.cv_face_rec.save(self.model_file)
 
     def predict(self, face_img):
         face_img = util.col2bw(face_img)
