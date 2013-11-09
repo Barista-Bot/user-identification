@@ -19,7 +19,9 @@ class FaceFinder1(AbstractFaceFinder):
         self.face_detector = cv2.CascadeClassifier("/usr/share/opencv/haarcascades/haarcascade_frontalface_alt.xml")
         
     def findFacesInImage(self, img):
-        rects = self.face_detector.detectMultiScale(img, 1.3, 4, cv2.cv.CV_HAAR_SCALE_IMAGE, (20,20))
+        min_face_width = img.shape[1]/10
+        min_face = (min_face_width, min_face_width)
+        rects = self.face_detector.detectMultiScale(img, 1.3, 4, cv2.cv.CV_HAAR_SCALE_IMAGE, minSize=min_face)
         rects = [util.Rect(r) for r in rects]
         return rects
 
