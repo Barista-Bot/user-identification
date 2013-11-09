@@ -39,7 +39,7 @@ class UserIdentifierServer(dbus.service.Object):
             {'param_name':'~faceidentifier', 'default_val':'FaceIdentifier' },
             {'param_name':'~facefinder',     'default_val':'FaceFinder1' },
             {'param_name':'~faceengine',     'default_val':'ContinuousEngine' },
-            {'param_name':'~gui',            'default_val': False },
+            {'param_name':'~gui',            'default_val': True },
         ]:
             try:
                 param_val = rospy.get_param(i['param_name'])
@@ -48,13 +48,13 @@ class UserIdentifierServer(dbus.service.Object):
                 rospy.set_param(i['param_name'], param_val)
             params[i['param_name']] = param_val
 
-        self.gui = gui.Gui() if params['~gui'] else gui.NoGui()
+        self.gui = gui.Gui(self) if params['~gui'] else gui.NoGui()
 
         video_source = getattr(video, params['~videosource'])()
         face_identifier = getattr(face.identification, params['~faceidentifier'])(data_dir=self.DATA_DIR)
         face_finder = getattr(face.finding, params['~facefinder'])()
         face_engine_class = getattr(face.engine, params['~faceengine'])
-        self.face_engine = face_engine_class(face_finder, face_identifier, video_source)
+        self.face_engine = face_engine_class(face_finder, face_identifier, video_source, self.rosPublish)
 
     def initDbus(self):
         session = dbus.SessionBus()
@@ -66,25 +66,28 @@ class UserIdentifierServer(dbus.service.Object):
 
     def initRosNode(self):
         self.ros_srv = importlib.import_module(self.PKG_NAME+'.srv')
+        self.ros_msg = importlib.import_module(self.PKG_NAME+'.msg')
         rospy.init_node(self.NODE_NAME)
         rospy.on_shutdown(lambda: self.exit())
 
-        self.rospy_services = [
+        self.ros_services = [
             rospy.Service(self.PKG_NAME+'/definePerson', self.ros_srv.definePerson, lambda req: self.definePerson(req.id)),
             rospy.Service(self.PKG_NAME+'/queryPerson', self.ros_srv.queryPerson, lambda req: self.queryPerson()),
             rospy.Service(self.PKG_NAME+'/exit', std_srvs.srv.Empty, lambda req: self.exit(from_ros_service=True)),
         ]
+
+        self.ros_publisher = rospy.Publisher(self.PKG_NAME+'/presence', self.ros_msg.presence)
+
   
     @dbus.service.method(INTERFACE_NAME, in_signature='i', out_signature='b')
     def definePerson(self, person_id):
-        success, face_img = self.face_engine.definePerson(person_id)
-        self.gui.showTrainingImage(face_img)
+        success = self.face_engine.definePerson(person_id)
         return success
 
     @dbus.service.method(INTERFACE_NAME, out_signature='bbii')
     def queryPerson(self, ret_rect=False):
-        is_person, is_known_person, person_id, confidence, rect = self.face_engine.queryPerson()
-        return is_person, is_known_person, person_id, confidence
+        res = self.face_engine.queryPerson()
+        return res.is_person, res.is_known_person, res.id, res.confidence
 
     @dbus.service.method(INTERFACE_NAME)
     def exit(self, from_ros_service=False):
@@ -92,9 +95,15 @@ class UserIdentifierServer(dbus.service.Object):
         if from_ros_service:
             return std_srvs.srv.EmptyResponse()
 
+    def rosPublish(self):
+        res = self.face_engine.queryPerson()
+        msg = self.ros_msg.presence(res.is_person, res.is_known_person, res.id, res.confidence)
+        rospy.loginfo(msg)
+        self.ros_publisher.publish(msg)
+
     def spinOnce(self):
         self.face_engine.spinOnce()
-        self.gui.spinOnce(self)
+        self.gui.spinOnce()
         return True
 
 

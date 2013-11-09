@@ -32,11 +32,12 @@ class FaceIdentifier(object):
 
     def predict(self, face_img):
         face_img = util.col2bw(face_img)
-        is_known_person, person_id, confidence = False, 0, 0
+        is_known_person, person_id, confidence = False, -1, 0
         if self.trained:
-            person_id, confidence = self.cv_face_rec.predict(face_img)
+            pid, confidence = self.cv_face_rec.predict(face_img)
             confidence = 100 - confidence
             if confidence > 10:
                 is_known_person = True
+                person_id = pid
 
         return is_known_person, person_id, confidence
