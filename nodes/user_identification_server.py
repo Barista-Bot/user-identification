@@ -33,32 +33,27 @@ class UserIdentifierServer(dbus.service.Object):
         self.getConfiguration()
 
     def getConfiguration(self):
-        # Enable/disable GUI
-        try:
-            use_gui = rospy.get_param('~gui')
-        except KeyError:
-            use_gui = False
-        self.gui = gui.Gui() if use_gui else gui.NoGui()
-
-        # Get other classes to be used
-        classes = {}
+        params = {}
         for i in [
-            {'ros_param':'~videosource',    'default_class':'DirectVideoSource' },
-            {'ros_param':'~faceidentifier', 'default_class':'FaceIdentifier' },
-            {'ros_param':'~facefinder',     'default_class':'FaceFinder1' },
-            {'ros_param':'~faceengine',     'default_class':'ContinuousEngine' },
+            {'param_name':'~videosource',    'default_val':'DirectVideoSource' },
+            {'param_name':'~faceidentifier', 'default_val':'FaceIdentifier' },
+            {'param_name':'~facefinder',     'default_val':'FaceFinder1' },
+            {'param_name':'~faceengine',     'default_val':'ContinuousEngine' },
+            {'param_name':'~gui',            'default_val': False },
         ]:
             try:
-                class_name = rospy.get_param(i['ros_param'])
+                param_val = rospy.get_param(i['param_name'])
             except KeyError:
-                class_name = i['default_class']
-            classes[i['ros_param']] = class_name
+                param_val = i['default_val']
+                rospy.set_param(i['param_name'], param_val)
+            params[i['param_name']] = param_val
 
-        video_source = getattr(video, classes['~videosource'])()
-        face_identifier = getattr(face.identification, classes['~faceidentifier'])(data_dir=self.DATA_DIR)
-        face_finder = getattr(face.finding, classes['~facefinder'])()
+        self.gui = gui.Gui() if params['~gui'] else gui.NoGui()
 
-        face_engine_class = getattr(face.engine, classes['~faceengine'])
+        video_source = getattr(video, params['~videosource'])()
+        face_identifier = getattr(face.identification, params['~faceidentifier'])(data_dir=self.DATA_DIR)
+        face_finder = getattr(face.finding, params['~facefinder'])()
+        face_engine_class = getattr(face.engine, params['~faceengine'])
         self.face_engine = face_engine_class(face_finder, face_identifier, video_source)
 
     def initDbus(self):

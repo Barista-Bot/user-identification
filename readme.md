@@ -7,9 +7,9 @@ Usage
 ------
 
 - Start server:
-    - In normal mode:
+    - In normal mode: (no GUI, get video from ROS topic)
         - `roslaunch user_identification main.launch`
-    - In demo mode:
+    - In demo mode: (GUI, connect directly to webcam)
         - `roslaunch user_identification demo.launch`
 - Interact:
     - From command-line:
@@ -22,11 +22,4 @@ Usage
         - `from user_identification import client`
         - `client.definePerson(0)`
         - `client.queryPerson()`
-
-
-To do
-------
-
-- Make training data file permanent
-- Improve face finding
-- Improve face identification
+        - Return values are the same as for the command line
