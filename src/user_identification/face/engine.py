@@ -183,8 +183,7 @@ class ContinuousLKTrackingEngine(AbstractEngine):
                     (point1, point2) = self.face_rect.pt1, self.face_rect.pt2
                     if (point1.x <= px <= point2.x) and (point1.y <= py <= point2.y):
                         self.tracks.append([(px, py)])
-                if self.is_known_person:
-                    self.resetLK = False
+                self.resetLK = False
         self.prev_gray = gray.copy()
 
     def spinOnce(self):
