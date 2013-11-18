@@ -1,7 +1,7 @@
 <launch>
-    <param name="~videosource" value="RosVideoSource2" />
-    <param name="~faceidentifier" value="FaceIdentifier" />
-    <param name="~facefinder" value="FaceFinder1" />
-    <param name="~gui" value="false" type="bool" />
+    <!-- <param name="~videosource" value="RosVideoSource2" /> -->
+    <!-- <param name="~faceidentifier" value="FaceIdentifier" /> -->
+    <!-- <param name="~facefinder" value="FaceFinder1" /> -->
+    <!-- <param name="~gui" value="false" type="bool" /> -->
     <node name="user_identification_server" pkg="user_identification" type="user_identification_server.py" />
 </launch>
