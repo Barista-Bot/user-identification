@@ -19,12 +19,20 @@ class AbstractEngine(object):
         self.publish = publish_method
         self.last_training_image = None
 
+    def queryPerson(self):
+        p = self.personOfCurrentFrame()
+        current_is_person = p.is_person
+
+        new_is_person = current_is_person
+
+        return QueryPersonResult(new_is_person, p.is_known_person, p.id, p.confidence, p.face_rect)
+
     @abstractmethod
     def definePerson(self):
         pass
 
     @abstractmethod
-    def queryPerson(self):
+    def personOfCurrentFrame(self):
         pass
 
     @abstractmethod
@@ -44,7 +52,7 @@ class OnDemandEngine(AbstractEngine):
         self.last_training_image = face_img
         return True
 
-    def queryPerson(self):
+    def personOfCurrentFrame(self):
         is_person, is_known_person = False, False
         person_id, confidence = -1, 0
 
@@ -76,7 +84,7 @@ class ContinuousEngine(AbstractEngine):
         self.last_training_image = face_img
         return True
 
-    def queryPerson(self):
+    def personOfCurrentFrame(self):
         return QueryPersonResult(self.is_person, self.is_known_person, self.person_id, self.confidence, self.face_rect)
 
     def updatePersonState(self):
@@ -158,7 +166,7 @@ class ContinuousLKTrackingEngine(AbstractEngine):
         self.last_training_image = face_img
         return True
 
-    def queryPerson(self):
+    def personOfCurrentFrame(self):
         return QueryPersonResult(self.is_person, self.is_known_person, self.person_id, self.confidence, self.face_rect)
 
     def initLK(self):
