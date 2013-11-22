@@ -28,9 +28,10 @@ class UserIdentifierServer(dbus.service.Object):
 
     def __init__(self, main_loop):
         self.main_loop = main_loop
-        self.initDbus()
         self.initRosNode()
         self.getConfiguration()
+        self.initDbus()
+        self.startRosComms()
 
     def getConfiguration(self):
         params = {}
@@ -70,6 +71,7 @@ class UserIdentifierServer(dbus.service.Object):
         rospy.init_node(self.NODE_NAME)
         rospy.on_shutdown(lambda: self.exit())
 
+    def startRosComms(self):
         self.ros_services = [
             rospy.Service(self.PKG_NAME+'/definePerson', self.ros_srv.definePerson, lambda req: self.definePerson(req.id)),
             rospy.Service(self.PKG_NAME+'/queryPerson', self.ros_srv.queryPerson, lambda req: self.queryPerson()),
