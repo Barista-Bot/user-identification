@@ -3,7 +3,7 @@
 import time
 import cv2
 import numpy as np
-from collections import namedtuple
+from collections import namedtuple, Counter, deque
 from abc import ABCMeta, abstractmethod
 from .. import util
 
@@ -18,14 +18,18 @@ class AbstractEngine(object):
         self.video_source = video_source
         self.publish = publish_method
         self.last_training_image = None
+	self.is_person_history = deque(maxlen=250)
 
     def queryPerson(self):
         p = self.personOfCurrentFrame()
-        current_is_person = p.is_person
+	self.is_person_history.append(p.is_person)
+	is_person_counter = Counter(self.is_person_history)
+        mode_is_person = is_person_counter.most_common(1)[0][0]
 
-        new_is_person = current_is_person
+	if not mode_is_person:
+		return QueryPersonResult(mode_is_person, False, -1, 0, None)
 
-        return QueryPersonResult(new_is_person, p.is_known_person, p.id, p.confidence, p.face_rect)
+        return QueryPersonResult(mode_is_person, p.is_known_person, p.id, p.confidence, p.face_rect)
 
     @abstractmethod
     def definePerson(self):
