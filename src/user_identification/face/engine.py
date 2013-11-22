@@ -97,8 +97,8 @@ class ContinuousEngine(AbstractEngine):
 
 
 class ContinuousLKTrackingEngine(AbstractEngine):
-    feature_params = dict( maxCorners = 100,
-                           qualityLevel = 0.3,
+    feature_params = dict( maxCorners = 200,
+                           qualityLevel = 0.01,
                            minDistance = 7,
                            blockSize = 7 )
 
