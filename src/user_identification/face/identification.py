@@ -6,7 +6,7 @@ import numpy as np
 from datetime import datetime
 from .. import util
 
-class FaceIdentifier(object):
+class LBPHIdentifier(object):
     def __init__(self, data_dir='/tmp/user_identification'):
         self.raw_face_dir = os.path.join(data_dir, 'raw_faces')
         try: 
