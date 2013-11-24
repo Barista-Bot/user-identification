@@ -3,14 +3,16 @@
 import os
 import cv2
 import numpy as np
+from datetime import datetime
 from .. import util
 
 class FaceIdentifier(object):
     def __init__(self, data_dir='/tmp/user_identification'):
+        self.raw_face_dir = os.path.join(data_dir, 'raw_faces')
         try: 
-            os.makedirs(data_dir)
+            os.makedirs(self.raw_face_dir)
         except OSError:
-            if not os.path.isdir(data_dir):
+            if not os.path.isdir(self.raw_face_dir):
                 raise
         
         self.model_file = os.path.join(data_dir, 'face_rec_model')
@@ -29,6 +31,14 @@ class FaceIdentifier(object):
         self.cv_face_rec.update(np.asarray([face_img]), np.asarray([person_id]))
         self.trained = True
         self.cv_face_rec.save(self.model_file)
+
+        id_dir = os.path.join(self.raw_face_dir, str(person_id))
+        try: 
+            os.makedirs(id_dir)
+        except OSError:
+            if not os.path.isdir(id_dir):
+                raise
+        cv2.imwrite(os.path.join(id_dir, datetime.now().isoformat()+'.png'), face_img)
 
     def predict(self, face_img):
         face_img = util.col2bw(face_img)
