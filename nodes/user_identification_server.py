@@ -37,7 +37,7 @@ class UserIdentifierServer(dbus.service.Object):
         params = {}
         for i in [
             {'param_name':'~videosource',    'default_val':'DirectVideoSource' },
-            {'param_name':'~faceidentifier', 'default_val':'FaceIdentifier' },
+            {'param_name':'~faceidentifier', 'default_val':'LBPHIdentifier' },
             {'param_name':'~facefinder',     'default_val':'FaceFinder1' },
             {'param_name':'~faceengine',     'default_val':'ContinuousEngine' },
             {'param_name':'~gui',            'default_val': True },
