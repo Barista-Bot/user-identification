@@ -10,7 +10,7 @@ class Gui(object):
 
     def spinOnce(self):
         is_person, is_known_person, person_id, confidence, face_rect = self.server.face_engine.queryPerson()
-        frame = self.server.face_engine.video_source.getFrame()
+        frame = self.server.face_engine.getFrame()
 
         if is_person:
             frame = util.drawBoxesOnImage([face_rect], frame)
@@ -20,7 +20,7 @@ class Gui(object):
 
         cv2.imshow("User Identification", frame)
 
-        training_img = self.server.face_engine.last_training_image
+        training_img = self.server.face_engine.getLastTrainingImage()
         if training_img != None:
             cv2.imshow("Training Image", training_img)
 

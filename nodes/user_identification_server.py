@@ -56,6 +56,7 @@ class UserIdentifierServer(dbus.service.Object):
         face_finder = getattr(face.finding, params['~facefinder'])()
         face_engine_class = getattr(face.engine, params['~faceengine'])
         self.face_engine = face_engine_class(face_finder, face_identifier, video_source, self.rosPublish)
+        self.face_engine = face.engine.AveragingEngine(self.face_engine)
 
     def initDbus(self):
         session = dbus.SessionBus()
