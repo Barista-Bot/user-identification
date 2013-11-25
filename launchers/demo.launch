@@ -1,7 +1,8 @@
 <launch>
     <param name="~videosource" value="DirectVideoSource" />
-    <param name="~faceidentifier" value="FaceIdentifier" />
+    <param name="~faceidentifier" value="LBPHIdentifier" />
     <param name="~facefinder" value="FaceFinder1" />
+    <param name="~faceengine" value="ContinuousLKTrackingEngine" />
     <param name="~gui" value="true" type="bool" />
     <node name="user_identification_server" pkg="user_identification" type="user_identification_server.py" output="screen" />
 </launch>
