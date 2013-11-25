@@ -34,3 +34,8 @@ class Rect(object):
 
     def area(self):
         return self.width() * self.height()
+
+    def isPointInRect(self, point):
+        if (self.pt1.x <= point.x <= self.pt2.x) and (self.pt1.y <= point.y <= self.pt2.y):
+            return True
+        return False
