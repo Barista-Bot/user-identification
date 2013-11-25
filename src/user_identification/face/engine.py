@@ -188,6 +188,8 @@ class ContinuousLKTrackingEngine(AbstractEngine):
             minY = 99999
             maxX = -99999
             maxY = -99999
+            sumX = 0
+            sumY = 0
             for tr, (x_tr, y_tr), good_flag in zip(self.tracks, p1.reshape(-1, 2), good):
                 if not good_flag:
                     continue
@@ -195,14 +197,18 @@ class ContinuousLKTrackingEngine(AbstractEngine):
                 if len(tr) > self.track_len:
                     del tr[0]
                 new_tracks.append(tr)
-                cv2.circle(frame, (x_tr, y_tr), 2, (0, 255, 0), -1)
+                #cv2.circle(frame, (x_tr, y_tr), 2, (0, 255, 0), -1)
                 minX = min(minX,x_tr)
                 minY = min(minY, y_tr)
                 maxX = max(maxX, x_tr)
                 maxY = max(maxY, y_tr)
+                sumX += x_tr
+                sumY += y_tr
+            self.avgTrackPoint = util.Rect.Point(int(sumX / len(self.tracks)), int(sumY / len(self.tracks)))
+            #cv2.circle(frame, self.avgTrackPoint, 5, (255, 255, 255), -1)
             self.tracks = new_tracks
-            cv2.polylines(frame, [np.int32(tr) for tr in self.tracks], False, (0, 255, 0))
-            cv2.rectangle(frame,(minX,minY),(maxX,maxY),(255,255,255),2)
+            #cv2.polylines(frame, [np.int32(tr) for tr in self.tracks], False, (0, 255, 0))
+            #cv2.rectangle(frame,(minX,minY),(maxX,maxY),(255,255,255),2)
         else:
             self.resetLK = True
         self.prev_gray = frame_gray
@@ -242,14 +248,25 @@ class ContinuousLKTrackingEngine(AbstractEngine):
             if p is not None:
                 for px, py in np.float32(p).reshape(-1, 2):
                     (point1, point2) = self.face_rect.pt1, self.face_rect.pt2
-                    if (point1.x + 70 <= px <= point2.x - 70) and (point1.y + 70 <= py <= point2.y - 70):
+                    if (point1.x <= px <= point2.x) and (point1.y <= py <= point2.y):
                         self.tracks.append([(px, py)])
                 self.resetLK = False
         self.prev_gray = gray.copy()
+
+    def updatePersonState(self):
+        frame = self._video_source.getFrame()
+        face_rects = self._face_finder.findFacesInImage(frame)
+        for face in face_rects:
+            if face.isPointInRect(self.avgTrackPoint):
+                self.face_rect = face
+                face_img = util.subimage(frame, self.face_rect)
+                self.is_known_person, self.person_id, self.confidence = self._face_identifier.predict(face_img)
+                break
 
     def spinOnce(self):
         self._video_source.getNewFrame()
         if self.resetLK:
             self.initLK()
         self.lkTrack()
+        self.updatePersonState()
         self._publish()
