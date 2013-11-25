@@ -13,6 +13,11 @@ class AbstractFaceFinder(object):
         """Returns a rectangle for the largest face in the image, or None if one doesn't exist"""
         pass
 
+    @abstractmethod
+    def findFacesInImage(self, img):
+        """Returns all faces in the image, or None if one doesn't exist"""
+        pass
+
 
 class FaceFinder1(AbstractFaceFinder):
     def __init__(self):
