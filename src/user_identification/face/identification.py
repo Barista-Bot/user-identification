@@ -46,7 +46,7 @@ class LBPHIdentifier(object):
         if self.trained:
             pid, confidence = self.cv_face_rec.predict(face_img)
             confidence = 100 - confidence
-            if confidence > 10:
+            if confidence > 30:
                 is_known_person = True
                 person_id = pid
 
