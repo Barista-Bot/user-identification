@@ -24,8 +24,17 @@ class AbstractVideoSource(object):
 
 class DirectVideoSource(AbstractVideoSource):
     def __init__(self):
-        self.vc = cv2.VideoCapture(0)
-        self.frame = None
+        for i in range(10):
+            try:
+                self.vc = cv2.VideoCapture(i)
+                self.getNewFrame()
+                break
+            except:
+                pass
+        else:
+            raise Exception('No working video device found between 0 and 9')
+
+
 
     def getNewFrame(self):
         rval, self.frame = self.vc.read()
