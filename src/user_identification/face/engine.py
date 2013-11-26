@@ -25,6 +25,9 @@ class AbstractEngine(object):
 
     def getLastTrainingImage(self):
         return self._last_training_image
+        
+    def getTrackingPts(self):
+        return []
 
     @abstractmethod
     def definePerson(self, person_id):
@@ -87,6 +90,9 @@ class AveragingEngine(AbstractEngine):
 
     def getLastTrainingImage(self):
         return self._inner_engine._last_training_image
+       
+    def getTrackingPts(self):
+        return self._inner_engine.getTrackingPts()
 
     def spinOnce(self):
         self._inner_engine.spinOnce()
@@ -168,6 +174,7 @@ class ContinuousLKTrackingEngine(AbstractEngine):
                       criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
 
     tracks = []
+    tracking_pts_to_draw = []
     track_len = 10
     prev_gray = None
     resetLK = True
@@ -190,6 +197,7 @@ class ContinuousLKTrackingEngine(AbstractEngine):
             maxY = -99999
             sumX = 0
             sumY = 0
+            self.tracking_pts_to_draw = []
             for tr, (x_tr, y_tr), good_flag in zip(self.tracks, p1.reshape(-1, 2), good):
                 if not good_flag:
                     continue
@@ -204,6 +212,7 @@ class ContinuousLKTrackingEngine(AbstractEngine):
                 maxY = max(maxY, y_tr)
                 sumX += x_tr
                 sumY += y_tr
+                self.tracking_pts_to_draw += [(x_tr, y_tr)]
             self.avgTrackPoint = util.Rect.Point(int(sumX / len(self.tracks)), int(sumY / len(self.tracks)))
             #cv2.circle(frame, self.avgTrackPoint, 5, (255, 255, 255), -1)
             self.tracks = new_tracks
@@ -262,6 +271,9 @@ class ContinuousLKTrackingEngine(AbstractEngine):
                 face_img = util.subimage(frame, self.face_rect)
                 self.is_known_person, self.person_id, self.confidence = self._face_identifier.predict(face_img)
                 break
+                        
+    def getTrackingPts(self):
+        return self.tracking_pts_to_draw
 
     def spinOnce(self):
         self._video_source.getNewFrame()
