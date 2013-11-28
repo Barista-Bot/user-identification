@@ -19,6 +19,8 @@ class AbstractEngine(object):
         self._video_source = video_source
         self._publish = publish_method
         self._last_training_image = None
+        self._face_img = None
+        self._face_rect = None
 
     def getFrame(self):
         return self._video_source.getFrame()
@@ -126,30 +128,27 @@ class OnDemandEngine(AbstractEngine):
 class ContinuousEngine(AbstractEngine):
     def definePerson(self, person_id):
         while True:
-            face_rect = self.face_rect
-            if face_rect != None:
+            face_img = self._face_img
+            if face_img != None and face_img is not self._last_training_img:
                 break
             time.sleep(0.01)
-        frame = self._video_source.getFrame()
-        face_img = util.subimage(frame, face_rect)
         self._face_identifier.update(face_img, person_id)
-
         self._last_training_image = face_img
         return True
 
     def queryPerson(self):
-        return QueryPersonResult(self.is_person, self.is_known_person, self.person_id, self.confidence, self.face_rect)
+        return QueryPersonResult(self.is_person, self.is_known_person, self.person_id, self.confidence, self._face_rect)
 
     def updatePersonState(self):
         self.is_person, self.is_known_person = False, False
         self.person_id, self.confidence = -1, 0
 
         frame = self._video_source.getFrame()
-        self.face_rect = self._face_finder.findLargestFaceInImage(frame)
-        if self.face_rect:
+        self._face_rect = self._face_finder.findLargestFaceInImage(frame)
+        if self._face_rect:
             self.is_person = True
-            face_img = util.subimage(frame, self.face_rect)
-            self.is_known_person, self.person_id, self.confidence = self._face_identifier.predict(face_img)
+            self._face_img = util.subimage(frame, self._face_rect)
+            self.is_known_person, self.person_id, self.confidence = self._face_identifier.predict(self._face_img)
 
     def spinOnce(self):
         self._video_source.getNewFrame()
@@ -215,18 +214,16 @@ class ContinuousLKTrackingEngine(AbstractEngine):
 
     def definePerson(self, person_id):
         while True:
-            face_rect = self.face_rect
-            if face_rect != None:
+            face_img = self._face_img
+            if face_img != None and face_img is not self._last_training_img:
                 break
             time.sleep(0.01)
-        frame = self._video_source.getFrame()
-        face_img = util.subimage(frame, face_rect)
         self._face_identifier.update(face_img, person_id)
         self._last_training_image = face_img
         return True
 
     def queryPerson(self):
-        return QueryPersonResult(self.is_person, self.is_known_person, self.person_id, self.confidence, self.face_rect)
+        return QueryPersonResult(self.is_person, self.is_known_person, self.person_id, self.confidence, self._face_rect)
 
     def initLK(self):
         self.is_person, self.is_known_person = False, False
@@ -234,11 +231,11 @@ class ContinuousLKTrackingEngine(AbstractEngine):
 
         frame = self._video_source.getFrame()
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        self.face_rect = self._face_finder.findLargestFaceInImage(frame)
+        self._face_rect = self._face_finder.findLargestFaceInImage(frame)
 
-        if self.face_rect:
+        if self._face_rect:
             self.is_person = True
-            face_img = util.subimage(frame, self.face_rect)
+            face_img = util.subimage(frame, self._face_rect)
             self.is_known_person, self.person_id, self.confidence = self._face_identifier.predict(face_img)
             mask = np.zeros_like(gray)
             mask[:] = 255
@@ -247,7 +244,7 @@ class ContinuousLKTrackingEngine(AbstractEngine):
             p = cv2.goodFeaturesToTrack(gray, mask=mask, **self.feature_params)
             if p is not None:
                 for px, py in np.float32(p).reshape(-1, 2):
-                    (point1, point2) = self.face_rect.pt1, self.face_rect.pt2
+                    (point1, point2) = self._face_rect.pt1, self._face_rect.pt2
                     if (point1.x <= px <= point2.x) and (point1.y <= py <= point2.y):
                         self.tracks.append([(px, py)])
                 self.resetLK = False
@@ -258,9 +255,9 @@ class ContinuousLKTrackingEngine(AbstractEngine):
         face_rects = self._face_finder.findFacesInImage(frame)
         for face in face_rects:
             if face.isPointInRect(self.avgTrackPoint):
-                self.face_rect = face
-                face_img = util.subimage(frame, self.face_rect)
-                self.is_known_person, self.person_id, self.confidence = self._face_identifier.predict(face_img)
+                self._face_rect = face
+                self._face_img = util.subimage(frame, self._face_rect)
+                self.is_known_person, self.person_id, self.confidence = self._face_identifier.predict(self._face_img)
                 break
 
     def spinOnce(self):
