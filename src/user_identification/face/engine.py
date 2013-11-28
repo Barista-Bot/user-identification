@@ -129,7 +129,7 @@ class ContinuousEngine(AbstractEngine):
     def definePerson(self, person_id):
         while True:
             face_img = self._face_img
-            if face_img != None and face_img is not self._last_training_img:
+            if face_img != None and face_img is not self._last_training_image:
                 break
             time.sleep(0.01)
         self._face_identifier.update(face_img, person_id)
@@ -215,7 +215,7 @@ class ContinuousLKTrackingEngine(AbstractEngine):
     def definePerson(self, person_id):
         while True:
             face_img = self._face_img
-            if face_img != None and face_img is not self._last_training_img:
+            if face_img != None and face_img is not self._last_training_image:
                 break
             time.sleep(0.01)
         self._face_identifier.update(face_img, person_id)
