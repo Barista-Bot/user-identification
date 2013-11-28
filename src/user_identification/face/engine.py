@@ -178,6 +178,7 @@ class ContinuousLKTrackingEngine(AbstractEngine):
     track_len = 10
     prev_gray = None
     resetLK = True
+    avgTrackPoint = util.Rect.Point(0, 0)
 
     def lkTrack(self):
         frame = self._video_source.getFrame()
