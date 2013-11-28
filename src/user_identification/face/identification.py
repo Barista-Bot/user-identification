@@ -18,14 +18,38 @@ class LBPHIdentifier(object):
         self.model_file = os.path.join(data_dir, 'face_rec_model')
         
         self.cv_face_rec = cv2.createLBPHFaceRecognizer()
+        self.trained = False
         try:
             if not os.path.exists(self.model_file):
                 raise cv2.error
             self.cv_face_rec.load(self.model_file)
             self.trained = True
         except cv2.error:
-            self.trained = False
-
+            pass
+           
+        if not self.trained:
+            faces = []
+            IDs = []
+            for id in os.listdir(self.raw_face_dir):
+                id_path = os.path.join(self.raw_face_dir, id)
+                try:
+                    id = int(id)
+                    id_is_int = True
+                except ValueError:
+                    id_is_int = False
+                if os.path.isdir(id_path) and id_is_int:
+                    for img_file in os.listdir(id_path):
+                        img_path = os.path.join(id_path, img_file)
+                        img = cv2.imread(img_file)
+                        if img:
+                            faces.append(img)
+                            IDs.append(id)
+                            
+            if len(IDs) > 0:
+                self.cv_face_rec.train(faces, IDs)
+                self.trained = True
+                self.cv_face_rec.save(self.model_file)
+                  
     def update(self, face_img, person_id):
         face_img = util.col2bw(face_img)
         self.cv_face_rec.update(np.asarray([face_img]), np.asarray([person_id]))
