@@ -253,7 +253,7 @@ class ContinuousLKTrackingEngine(AbstractEngine):
                 cv2.circle(mask, (mx, my), 5, 0, -1)
             p = cv2.goodFeaturesToTrack(gray, mask=mask, **self.feature_params)
             if p is not None:
-                (point1, point2) = self.face_rect.pt1, self.face_rect.pt2
+                (point1, point2) = self._face_rect.pt1, self._face_rect.pt2
                 ptScaleX = (int(point2.x - point1.x) * 0.15)
                 ptScaleY = (int(point2.y - point1.y) * 0.15)
                 for px, py in np.float32(p).reshape(-1, 2):
