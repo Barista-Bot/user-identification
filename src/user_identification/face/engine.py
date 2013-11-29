@@ -250,6 +250,7 @@ class ContinuousLKTrackingEngine(AbstractEngine):
     def initLK(self):
         self.is_person, self.is_known_person = False, False
         self.person_id, self.confidence = -1, 0
+        self.tracks = []
 
         frame = self._video_source.getFrame()
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -266,8 +267,8 @@ class ContinuousLKTrackingEngine(AbstractEngine):
             p = cv2.goodFeaturesToTrack(gray, mask=mask, **self.feature_params)
             if p is not None:
                 (point1, point2) = self._face_rect.pt1, self._face_rect.pt2
-                ptScaleX = (int(point2.x - point1.x) * 0.15)
-                ptScaleY = (int(point2.y - point1.y) * 0.15)
+                ptScaleX = (int(point2.x - point1.x) * 0)
+                ptScaleY = (int(point2.y - point1.y) * 0)
                 for px, py in np.float32(p).reshape(-1, 2):
                     if (point1.x + ptScaleX <= px <= point2.x - ptScaleX) and (point1.y + ptScaleY <= py <= point2.y - ptScaleY):
                         self.tracks.append([(px, py)])
@@ -277,12 +278,14 @@ class ContinuousLKTrackingEngine(AbstractEngine):
     def updatePersonState(self):
         frame = self._video_source.getFrame()
         face_rects = self._face_finder.findFacesInImage(frame)
-        for face in face_rects:
-            if face.isPointInRect(self.avgTrackPoint):
-                self._face_rect = face
-                self._face_img = util.subimage(frame, self._face_rect)
-                self.is_known_person, self.person_id, self.confidence = self._face_identifier.predict(self._face_img)
-                break
+        if len(face_rects) > 0:
+            for face in face_rects:
+                if face.isPointInRect(self.avgTrackPoint):
+                    self._face_rect = face
+                    self._face_img = util.subimage(frame, self._face_rect)
+                    self.is_known_person, self.person_id, self.confidence = self._face_identifier.predict(self._face_img)
+                    return
+            self.resetLK = True
                         
     def getTrackingPts(self):
         return self.tracking_pts_to_draw
