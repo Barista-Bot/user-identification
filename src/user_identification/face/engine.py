@@ -6,6 +6,7 @@ import numpy as np
 from collections import namedtuple, Counter, deque
 from itertools import islice
 from abc import ABCMeta, abstractmethod
+from threading import Lock
 from .. import util
 
 QueryPersonResult = namedtuple('QueryPersonResult', 'is_person is_known_person id confidence face_rect')
@@ -49,8 +50,11 @@ class AveragingEngine(AbstractEngine):
         self._deque_size = 500
         self._person_history = deque(maxlen=self._deque_size)
         self._prev_is_person = False
+        self._queryPersonLock = Lock()
 
     def queryPerson(self):
+        self._queryPersonLock.acquire()
+
         person = self._inner_engine.queryPerson()
         self._person_history.appendleft(person)
 
@@ -81,6 +85,8 @@ class AveragingEngine(AbstractEngine):
             result = QueryPersonResult(is_person, person_id != -1, person_id, self._last_confidence, self._last_rect)
 
         self._prev_is_person = is_person
+
+        self._queryPersonLock.release()
         return result
 
 
