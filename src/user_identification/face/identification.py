@@ -17,7 +17,7 @@ class LBPHIdentifier(object):
         
         self.model_file = os.path.join(data_dir, 'face_rec_model')
         
-        self.cv_face_rec = cv2.createLBPHFaceRecognizer()
+        self.cv_face_rec = cv2.createLBPHFaceRecognizer(threshold=80)
         self.trained = False
         try:
             if not os.path.exists(self.model_file):
@@ -40,13 +40,12 @@ class LBPHIdentifier(object):
                 if os.path.isdir(id_path) and id_is_int:
                     for img_file in os.listdir(id_path):
                         img_path = os.path.join(id_path, img_file)
-                        img = cv2.imread(img_file)
-                        if img:
+                        img = cv2.imread(img_path, cv2.CV_LOAD_IMAGE_GRAYSCALE)
+                        if img is not None:
                             faces.append(img)
                             IDs.append(id)
-                            
             if len(IDs) > 0:
-                self.cv_face_rec.train(faces, IDs)
+                self.cv_face_rec.train(faces, np.array(IDs))
                 self.trained = True
                 self.cv_face_rec.save(self.model_file)
                   
@@ -68,10 +67,8 @@ class LBPHIdentifier(object):
         face_img = util.col2bw(face_img)
         is_known_person, person_id, confidence = False, -1, 0
         if self.trained:
-            pid, confidence = self.cv_face_rec.predict(face_img)
+            person_id, confidence = self.cv_face_rec.predict(face_img)
             confidence = 100 - confidence
-            if confidence > 30:
-                is_known_person = True
-                person_id = pid
+            is_known_person = False if person_id == -1 else True
 
         return is_known_person, person_id, confidence
