@@ -32,7 +32,7 @@ class AbstractEngine(object):
         return []
 
     @abstractmethod
-    def definePerson(self, person_id):
+    def definePerson(self, person_id, is_aborted_method=lambda: False):
         pass
 
     @abstractmethod
@@ -84,8 +84,8 @@ class AveragingEngine(AbstractEngine):
         return result
 
 
-    def definePerson(self, person_id):
-        return self._inner_engine.definePerson(person_id)
+    def definePerson(self, person_id, is_aborted_method=lambda: False):
+        return self._inner_engine.definePerson(person_id, is_aborted_method)
 
     def getFrame(self):
         return self._inner_engine._video_source.getFrame()
@@ -102,9 +102,11 @@ class AveragingEngine(AbstractEngine):
 
 
 class OnDemandEngine(AbstractEngine):
-    def definePerson(self, person_id):
+    def definePerson(self, person_id, is_aborted_method=lambda: False):
         face_rect = None
         while face_rect == None:
+            if is_aborted_method():
+                return False
             frame = self._video_source.getFrame()
             face_rect = self._face_finder.findLargestFaceInImage(frame)
         face_img = util.subimage(frame, face_rect)
@@ -132,8 +134,10 @@ class OnDemandEngine(AbstractEngine):
 
 
 class ContinuousEngine(AbstractEngine):
-    def definePerson(self, person_id):
+    def definePerson(self, person_id, is_aborted_method=lambda: False):
         while True:
+            if is_aborted_method():
+                return False
             face_img = self._face_img
             if face_img != None and face_img is not self._last_training_image:
                 break
@@ -222,8 +226,10 @@ class ContinuousLKTrackingEngine(AbstractEngine):
             self.resetLK = True
         self.prev_gray = frame_gray
 
-    def definePerson(self, person_id):
+    def definePerson(self, person_id, is_aborted_method=lambda: False):
         while True:
+            if is_aborted_method():
+                return False
             face_img = self._face_img
             if face_img != None and face_img is not self._last_training_image:
                 break

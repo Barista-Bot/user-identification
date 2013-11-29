@@ -11,6 +11,7 @@ DBusGMainLoop(set_as_default=True)
 import roslib
 import rospy
 import rospkg
+import actionlib
 import std_srvs.srv
 import importlib
 from user_identification import util, video, face, gui
@@ -72,6 +73,23 @@ class UserIdentifierServer(dbus.service.Object):
         rospy.init_node(self.NODE_NAME)
         rospy.on_shutdown(lambda: self.exit())
 
+        def definePersonActionHandler(goal):
+            ret = self.face_engine.definePerson(
+                goal.id,
+                lambda: self.define_person_action_server.is_preempt_requested()
+            )
+            if ret:
+                self.define_person_action_server.set_succeeded()
+            else:
+                self.define_person_action_server.set_preempted()
+
+        self.define_person_action_server = actionlib.SimpleActionServer(
+            self.PKG_NAME+'/definePerson',
+            self.ros_msg.definePersonAction,
+            definePersonActionHandler,
+            auto_start=False
+        )
+
     def startRosComms(self):
         self.ros_services = [
             rospy.Service(self.PKG_NAME+'/definePerson', self.ros_srv.definePerson, lambda req: self.definePerson(req.id)),
@@ -80,15 +98,15 @@ class UserIdentifierServer(dbus.service.Object):
         ]
 
         self.ros_publisher = rospy.Publisher(self.PKG_NAME+'/presence', self.ros_msg.presence)
+        self.define_person_action_server.start()
 
-  
     @dbus.service.method(INTERFACE_NAME, in_signature='i', out_signature='b')
     def definePerson(self, person_id):
         success = self.face_engine.definePerson(person_id)
         return success
 
     @dbus.service.method(INTERFACE_NAME, out_signature='bbii')
-    def queryPerson(self, ret_rect=False):
+    def queryPerson(self):
         res = self.face_engine.queryPerson()
         return res.is_person, res.is_known_person, res.id, res.confidence
 
