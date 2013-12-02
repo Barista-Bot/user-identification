@@ -108,7 +108,8 @@ class UserIdentifierServer(dbus.service.Object):
     @dbus.service.method(INTERFACE_NAME, out_signature='bbii')
     def queryPerson(self):
         res = self.face_engine.queryPerson()
-        return res.is_person, res.is_known_person, res.id, res.confidence
+        conf = res.confidence if res.is_known_person else 0
+        return res.is_person, res.is_known_person, res.id, conf
 
     @dbus.service.method(INTERFACE_NAME)
     def exit(self, from_ros_service=False):
@@ -117,8 +118,8 @@ class UserIdentifierServer(dbus.service.Object):
             return std_srvs.srv.EmptyResponse()
 
     def rosPublish(self):
-        res = self.face_engine.queryPerson()
-        msg = self.ros_msg.presence(res.is_person, res.is_known_person, res.id, res.confidence)
+        is_person, is_known_person, id, confidence = self.queryPerson()
+        msg = self.ros_msg.presence(is_person, is_known_person, id, confidence)
         rospy.loginfo(msg)
         self.ros_publisher.publish(msg)
 
