@@ -66,7 +66,7 @@ class MouthFinder(object):
 
             self.mouth_img = mouth_img
             self._prev_talkingness = talkingness
-            return talkingness
+        return self._prev_talkingness
 
     def findMouthInFace(self, face_img):
         face_height, face_width, _ = face_img.shape
