@@ -7,9 +7,10 @@ from collections import namedtuple, Counter, deque
 from itertools import islice
 from abc import ABCMeta, abstractmethod
 from threading import Lock
+from finding import MouthFinder
 from .. import util
 
-QueryPersonResult = namedtuple('QueryPersonResult', 'is_person is_known_person id confidence face_rect')
+QueryPersonResult = namedtuple('QueryPersonResult', 'is_person is_known_person id confidence face_rect talkingness')
 
 class AbstractEngine(object):
     __metaclass__ = ABCMeta
@@ -51,6 +52,7 @@ class AveragingEngine(AbstractEngine):
         self._person_history = deque(maxlen=self._deque_size)
         self._prev_is_person = False
         self._queryPersonLock = Lock()
+        self.mouth_finder = MouthFinder()
 
     def queryPerson(self):
         self._queryPersonLock.acquire()
@@ -74,7 +76,7 @@ class AveragingEngine(AbstractEngine):
             self._person_history.extendleft([person]*self._deque_size)
 
         if not is_person:
-            result = QueryPersonResult(is_person, False, -1, 0, None)
+            result = QueryPersonResult(is_person=False, is_known_person=False, id=-1, confidence=0, face_rect=None, talkingness=0)
         else:
 
             for p in self._person_history:
@@ -82,7 +84,14 @@ class AveragingEngine(AbstractEngine):
                     last_person = p
                     break
 
-            result = QueryPersonResult(is_person, person_id != -1, person_id, self._last_confidence, self._last_rect)
+            result = QueryPersonResult(
+                is_person=True,
+                is_known_person=(person_id != -1),
+                id=person_id,
+                confidence=self._last_confidence,
+                face_rect=self._last_rect,
+                talkingness=self.mouth_finder.getTalkingness(self._inner_engine._video_source.getFrame(), self._last_rect)
+            )
 
         self._prev_is_person = is_person
 
@@ -106,39 +115,6 @@ class AveragingEngine(AbstractEngine):
         self._inner_engine.spinOnce()
 
 
-
-class OnDemandEngine(AbstractEngine):
-    def definePerson(self, person_id, is_aborted_method=lambda: False):
-        face_rect = None
-        while face_rect == None:
-            if is_aborted_method():
-                return False
-            frame = self._video_source.getFrame()
-            face_rect = self._face_finder.findLargestFaceInImage(frame)
-        face_img = util.subimage(frame, face_rect)
-        self._face_identifier.update(face_img, person_id)
-
-        self._last_training_image = face_img
-        return True
-
-    def queryPerson(self):
-        is_person, is_known_person = False, False
-        person_id, confidence = -1, 0
-
-        frame = self._video_source.getFrame()
-        face_rect = self._face_finder.findLargestFaceInImage(frame)
-        if face_rect:
-            is_person = True
-            face_img = util.subimage(frame, face_rect)
-            is_known_person, person_id, confidence = self._face_identifier.predict(face_img)
-
-        return QueryPersonResult(is_person, is_known_person, person_id, confidence, face_rect)
-
-    def spinOnce(self):
-        self._video_source.getNewFrame()
-        self._publish()
-
-
 class ContinuousEngine(AbstractEngine):
     def definePerson(self, person_id, is_aborted_method=lambda: False):
         while True:
@@ -153,7 +129,7 @@ class ContinuousEngine(AbstractEngine):
         return True
 
     def queryPerson(self):
-        return QueryPersonResult(self.is_person, self.is_known_person, self.person_id, self.confidence, self._face_rect)
+        return QueryPersonResult(self.is_person, self.is_known_person, self.person_id, self.confidence, self._face_rect, 0)
 
     def updatePersonState(self):
         self.is_person, self.is_known_person = False, False
@@ -245,7 +221,7 @@ class ContinuousLKTrackingEngine(AbstractEngine):
         return True
 
     def queryPerson(self):
-        return QueryPersonResult(self.is_person, self.is_known_person, self.person_id, self.confidence, self._face_rect)
+        return QueryPersonResult(self.is_person, self.is_known_person, self.person_id, self.confidence, self._face_rect, 0)
 
     def initLK(self):
         self.is_person, self.is_known_person = False, False

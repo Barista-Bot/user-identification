@@ -4,19 +4,23 @@ import cv2
 import numpy as np
 import util
 
-
 class Gui(object):
     def __init__(self, server):
         self.server = server
 
     def spinOnce(self):
-        is_person, is_known_person, person_id, confidence, face_rect = self.server.face_engine.queryPerson()
+        is_person, is_known_person, person_id, confidence, face_rect, talkingness = self.server.face_engine.queryPerson()
         frame = self.server.face_engine.getFrame()
+
+        if talkingness > 100:
+            box_colour = (0, 0, 255)
+        else:
+            box_colour = (127, 255, 0)
 
         if is_person:
         
             frame = np.copy(frame)
-            util.drawBoxesOnImage([face_rect], frame)
+            util.drawBoxesOnImage([face_rect], frame, box_colour)
             
             tracking_pts = self.server.face_engine.getTrackingPts()
             util.drawPointsOnImage(tracking_pts, frame)

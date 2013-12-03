@@ -11,7 +11,7 @@ DEFINE_PERSON_SERVICE_NAME = PKG_NAME+'/definePerson'
 QUERY_PERSON_SERVICE_NAME = PKG_NAME+'/queryPerson'
 PERSON_PRESENCE_TOPIC_NAME = PKG_NAME+'/presence'
 
-QueryPersonResult = namedtuple('QueryPersonResult', 'is_person is_known_person id confidence')
+QueryPersonResult = namedtuple('QueryPersonResult', 'is_person is_known_person id confidence talkingness')
 
 def definePerson(person_id):
     client = actionlib.SimpleActionClient(DEFINE_PERSON_SERVICE_NAME, msg.definePersonAction)
@@ -33,7 +33,8 @@ def queryPerson():
         is_person=res.is_person,
         is_known_person=res.is_known_person,
         id=res.id,
-        confidence=res.confidence
+        confidence=res.confidence,
+        talkingness=res.talkingness,
     )
 
 def subscribe(callback):

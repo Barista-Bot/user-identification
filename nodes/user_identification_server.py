@@ -39,8 +39,8 @@ class UserIdentifierServer(dbus.service.Object):
         for i in [
             {'param_name':'~videosource',    'default_val':'DirectVideoSource' },
             {'param_name':'~faceidentifier', 'default_val':'LBPHIdentifier' },
-            {'param_name':'~facefinder',     'default_val':'FaceFinder1' },
-            {'param_name':'~faceengine',     'default_val':'ContinuousEngine' },
+            {'param_name':'~facefinder',     'default_val':'FaceFinder' },
+            {'param_name':'~faceengine',     'default_val':'ContinuousLKTrackingEngine' },
             {'param_name':'~gui',            'default_val': True },
         ]:
             try:
@@ -109,7 +109,7 @@ class UserIdentifierServer(dbus.service.Object):
     def queryPerson(self):
         res = self.face_engine.queryPerson()
         conf = res.confidence if res.is_known_person else 0
-        return res.is_person, res.is_known_person, res.id, conf
+        return (res.is_person, res.is_known_person, res.id, conf, res.talkingness)
 
     @dbus.service.method(INTERFACE_NAME)
     def exit(self, from_ros_service=False):
@@ -118,8 +118,7 @@ class UserIdentifierServer(dbus.service.Object):
             return std_srvs.srv.EmptyResponse()
 
     def rosPublish(self):
-        is_person, is_known_person, id, confidence = self.queryPerson()
-        msg = self.ros_msg.presence(is_person, is_known_person, id, confidence)
+        msg = self.ros_msg.presence(*self.queryPerson())
         rospy.loginfo(msg)
         self.ros_publisher.publish(msg)
 
