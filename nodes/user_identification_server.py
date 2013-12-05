@@ -108,7 +108,7 @@ class UserIdentifierServer(dbus.service.Object):
     @dbus.service.method(INTERFACE_NAME, out_signature='bbii')
     def queryPerson(self):
         res = self.face_engine.queryPerson()
-        conf = res.confidence if res.is_known_person else 0
+        conf = max(res.confidence, -100)
         return (res.is_person, res.is_known_person, res.id, conf, res.talkingness)
 
     @dbus.service.method(INTERFACE_NAME)
