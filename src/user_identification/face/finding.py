@@ -56,7 +56,7 @@ class MouthFinder(object):
             mouth_img = util.subimage(face_img, face_mouth_rect)
             skin_colour = np.mean([mouth_img[0][0], mouth_img[-1][0], mouth_img[0][1], mouth_img[-1][-1]], 0)
             colour_thresh = 0.35*skin_colour
-            openness = 2*(np.sum(mouth_img < colour_thresh)/50)**2
+            openness = 2*((100*np.sum(mouth_img < colour_thresh))/face_rect.width())**2
 
             if self._prev_talkingness < 100 and openness > 300:
                 openness *= 10
