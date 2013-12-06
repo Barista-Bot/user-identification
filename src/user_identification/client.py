@@ -38,5 +38,4 @@ def queryPerson():
     )
 
 def subscribe(callback):
-    rospy.wait_for_message(PERSON_PRESENCE_TOPIC_NAME, msg.presence)
     rospy.Subscriber(PERSON_PRESENCE_TOPIC_NAME, msg.presence, callback, queue_size=1)
