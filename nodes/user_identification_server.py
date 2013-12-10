@@ -14,6 +14,8 @@ import rospkg
 import actionlib
 import std_srvs.srv
 import importlib
+import cv_bridge
+import sensor_msgs
 from user_identification import util, video, face, gui
 
 
@@ -56,7 +58,7 @@ class UserIdentifierServer(dbus.service.Object):
         face_identifier = getattr(face.identification, params['~faceidentifier'])(data_dir=self.DATA_DIR)
         face_finder = getattr(face.finding, params['~facefinder'])()
         face_engine_class = getattr(face.engine, params['~faceengine'])
-        self.face_engine = face_engine_class(face_finder, face_identifier, video_source, self.rosPublish)
+        self.face_engine = face_engine_class(face_finder, face_identifier, video_source, self.presencePublish)
         self.face_engine = face.engine.AveragingEngine(self.face_engine)
 
     def initDbus(self):
@@ -72,6 +74,7 @@ class UserIdentifierServer(dbus.service.Object):
         self.ros_msg = importlib.import_module(self.PKG_NAME+'.msg')
         rospy.init_node(self.NODE_NAME)
         rospy.on_shutdown(lambda: self.exit())
+        self.cv_bridge = cv_bridge.CvBridge()
 
         def definePersonActionHandler(goal):
             ret = self.face_engine.definePerson(
@@ -97,7 +100,8 @@ class UserIdentifierServer(dbus.service.Object):
             rospy.Service(self.PKG_NAME+'/exit', std_srvs.srv.Empty, lambda req: self.exit(from_ros_service=True)),
         ]
 
-        self.ros_publisher = rospy.Publisher(self.PKG_NAME+'/presence', self.ros_msg.presence)
+        self.presence_publisher = rospy.Publisher(self.PKG_NAME+'/presence', self.ros_msg.presence)
+        self.video_publisher = rospy.Publisher(self.PKG_NAME+'/video', sensor_msgs.msg.Image)
         self.define_person_action_server.start()
 
     @dbus.service.method(INTERFACE_NAME, in_signature='i', out_signature='b')
@@ -117,10 +121,17 @@ class UserIdentifierServer(dbus.service.Object):
         if from_ros_service:
             return std_srvs.srv.EmptyResponse()
 
-    def rosPublish(self):
+    def presencePublish(self):
         msg = self.ros_msg.presence(*self.queryPerson())
         rospy.loginfo(msg)
-        self.ros_publisher.publish(msg)
+        self.presence_publisher.publish(msg)
+
+    def videoPublish(self, frame):
+        height0, width0, _ = frame.shape
+        new_height = 300
+        new_width = width0 * new_height/height0
+        frame = cv2.resize(frame, (new_width, new_height), interpolation=cv2.INTER_AREA)
+        self.video_publisher.publish(self.cv_bridge.cv_to_imgmsg(cv2.cv.fromarray(frame), "bgr8"))
 
     def spinOnce(self):
         self.face_engine.spinOnce()

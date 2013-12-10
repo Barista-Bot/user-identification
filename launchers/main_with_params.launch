@@ -1,0 +1,8 @@
+<launch>
+    <param name="/user_identification_server/videosource" value="DirectVideoSource" />
+    <param name="/user_identification_server/faceengine" value="ContinuousLKTrackingEngine" />
+    <param name="/user_identification_server/facefinder" value="FaceFinder" />
+    <param name="/user_identification_server/faceidentifier" value="LBPHIdentifier" />
+    <param name="/user_identification_server/gui" value="true" />
+    <include file="$(find user_identification)/launchers/main.launch"/>
+</launch>

@@ -5,7 +5,7 @@ import rospy
 import numpy as np
 from abc import ABCMeta, abstractmethod
 from sensor_msgs.msg import Image
-from cv_bridge import CvBridge, CvBridgeError
+from cv_bridge import CvBridge
 import time
 
 DEFAULT_ROS_VIDEO_TOPIC = "/usb_cam/image_raw"
@@ -24,7 +24,7 @@ class AbstractVideoSource(object):
 
 class DirectVideoSource(AbstractVideoSource):
     def __init__(self):
-        for i in range(10):
+        for i in reversed(range(3)):
             try:
                 self.vc = cv2.VideoCapture(i)
                 self.getNewFrame()
@@ -33,8 +33,6 @@ class DirectVideoSource(AbstractVideoSource):
                 pass
         else:
             raise Exception('No working video device found between 0 and 9')
-
-
 
     def getNewFrame(self):
         rval, self.frame = self.vc.read()

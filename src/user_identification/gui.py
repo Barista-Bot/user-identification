@@ -12,7 +12,7 @@ class Gui(object):
         is_person, is_known_person, person_id, confidence, face_rect, talkingness = self.server.face_engine.queryPerson()
         frame = self.server.face_engine.getFrame()
 
-        if talkingness > 100:
+        if talkingness > 50:
             box_colour = (0, 0, 255)
         else:
             box_colour = (127, 255, 0)
@@ -31,6 +31,7 @@ class Gui(object):
         
 
         cv2.imshow("User Identification", frame)
+        self.server.videoPublish(frame)
 
         training_img = self.server.face_engine.getLastTrainingImage()
         if training_img != None:
@@ -42,5 +43,8 @@ class Gui(object):
 
 
 class NoGui(object):
+    def __init__(self, *args):
+        pass
+
     def spinOnce(self):
         pass

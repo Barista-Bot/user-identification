@@ -158,12 +158,14 @@ class ContinuousLKTrackingEngine(AbstractEngine):
                       maxLevel = 2,
                       criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
 
-    tracks = []
-    tracking_pts_to_draw = []
-    track_len = 10
-    prev_gray = None
-    resetLK = True
-    avgTrackPoint = util.Rect.Point(0, 0)
+    def __init__(self, *args):
+        super(ContinuousLKTrackingEngine, self).__init__(*args)
+        self.tracks = []
+        self.tracking_pts_to_draw = []
+        self.track_len = 10
+        self.prev_gray = None
+        self.resetLK = True
+        self.avgTrackPoint = util.Rect.Point(0, 0)
 
     def lkTrack(self):
         frame = self._video_source.getFrame()

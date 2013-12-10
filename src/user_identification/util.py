@@ -12,12 +12,12 @@ def col2bw(img):
 
 def drawBoxesOnImage(rects, img, colour=(127, 255, 0)):
     for rect in rects:
-        cv2.rectangle(img, rect.pt1, rect.pt2, colour, 2)
+        cv2.rectangle(img, tuple(rect.pt1), tuple(rect.pt2), colour, 2)
     return img
 
 def drawPointsOnImage(pts, img):
     for pt in pts:
-        cv2.circle(img, pt, 5, (255, 0, 0), -1)
+        cv2.circle(img, tuple(pt), 5, (255, 0, 0), -1)
     return img
 
 def largestOfRects(rects):
@@ -33,7 +33,14 @@ def largestOfRects(rects):
 
 
 class Rect(object):
-    Point = namedtuple('Point', 'x y')
+    class Point(object):
+        def __init__(self, x, y):
+            self.x = x
+            self.y = y
+
+        def __iter__(self):
+            yield self.x
+            yield self.y
 
     def __init__(self, array):
         x, y, w, h = array
@@ -54,3 +61,7 @@ class Rect(object):
         if (self.pt1.x <= point.x <= self.pt2.x) and (self.pt1.y <= point.y <= self.pt2.y):
             return True
         return False
+
+    def shape(self):
+        return (self.width(), self.height())
+
