@@ -24,9 +24,9 @@ class FaceFinder(AbstractFaceFinder):
         self.face_detector = cv2.CascadeClassifier("/usr/share/opencv/haarcascades/haarcascade_frontalface_alt.xml")
         
     def findFacesInImage(self, img):
-        min_face_width = img.shape[1]/10
+        min_face_width = img.shape[1]/5
         min_face = (min_face_width, min_face_width)
-        rects = self.face_detector.detectMultiScale(img, 1.3, 4, cv2.cv.CV_HAAR_SCALE_IMAGE, minSize=min_face)
+        rects = self.face_detector.detectMultiScale(img, 1.1, 4, cv2.cv.CV_HAAR_SCALE_IMAGE, minSize=min_face)
         rects = [util.Rect(r) for r in rects]
         return rects
 
@@ -59,7 +59,7 @@ class MouthFinder(object):
             mouth_img = util.subimage(face_img, face_mouth_rect)
             mouth_img = cv2.resize(mouth_img, (116, 70), interpolation=cv2.INTER_AREA)
             mouth_img = cv2.cvtColor(mouth_img,cv2.COLOR_BGR2GRAY)
-            # cv2.imshow('mouth', mouth_img)
+            cv2.imshow('mouth', mouth_img)
 
             if self._prev_mouth_img is not None and np.any(mouth_img != self._prev_mouth_img):
                 flow = cv2.calcOpticalFlowFarneback(self._prev_mouth_img,mouth_img, 0.5, 3, 15, 3, 5, 1.2, 0)
@@ -100,7 +100,7 @@ class MouthFinder(object):
         mouth_roi_img = util.subimage(face_img, mouth_roi_rect)
         min_size = tuple(int(0.4*l) for l in mouth_roi_rect.shape())
         max_size = tuple(int(0.6*l) for l in mouth_roi_rect.shape())
-        rects = self._mouth_detector.detectMultiScale(mouth_roi_img, 1.3, 4, cv2.cv.CV_HAAR_SCALE_IMAGE, minSize=min_size, maxSize=max_size)
+        rects = self._mouth_detector.detectMultiScale(mouth_roi_img, 1.1, 4, cv2.cv.CV_HAAR_SCALE_IMAGE, minSize=min_size, maxSize=max_size)
         rects = [util.Rect(r) for r in rects]
         rect = util.largestOfRects(rects)
         if rect:
