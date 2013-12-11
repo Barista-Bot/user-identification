@@ -2,11 +2,13 @@
 
 import cv2
 import numpy as np
+import threading
 import util
 
 class Gui(object):
     def __init__(self, server):
         self.server = server
+        self.video_publish_thread = None
 
     def spinOnce(self):
         is_person, is_known_person, person_id, confidence, face_rect, talkingness = self.server.face_engine.queryPerson()
@@ -31,7 +33,10 @@ class Gui(object):
         
 
         cv2.imshow("User Identification", frame)
-        self.server.videoPublish(frame)
+
+        if not self.video_publish_thread or not self.video_publish_thread.is_alive():
+            self.video_publish_thread = threading.Thread(target=self.server.videoPublish, args=(frame,))
+            self.video_publish_thread.start()
 
         training_img = self.server.face_engine.getLastTrainingImage()
         if training_img != None:
