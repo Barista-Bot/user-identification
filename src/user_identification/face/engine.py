@@ -51,6 +51,7 @@ class AveragingEngine(AbstractEngine):
         self._deque_size = 500
         self._person_history = deque(maxlen=self._deque_size)
         self._prev_is_person = False
+        self._prev_is_known_person = False
         self._queryPersonLock = Lock()
         self.mouth_finder = MouthFinder()
 
@@ -60,25 +61,26 @@ class AveragingEngine(AbstractEngine):
         person = self._inner_engine.queryPerson()
         self._person_history.appendleft(person)
 
-        n_samples = 500 if self._prev_is_person else 10
 
-        is_person_counter = Counter(p.is_person for p in islice(self._person_history, 0, n_samples))
+        is_person_averaging_samples = 500 if self._prev_is_person else 10
+        is_person_counter = Counter(p.is_person for p in islice(self._person_history, 0, is_person_averaging_samples))
         is_person = is_person_counter.most_common(1)[0][0]
 
-        person_id_counter = Counter(p.id for p in islice(self._person_history, 0, n_samples))
+        person_id_averaging_samples = 500 if self._prev_is_known_person else 10
+        person_id_counter = Counter(p.id for p in islice(self._person_history, 0, person_id_averaging_samples))
         person_id = person_id_counter.most_common(1)[0][0]
+        is_known_person = (person_id != -1)
 
         if person.is_person:
             self._last_confidence = person.confidence
             self._last_rect = person.face_rect
 
-        if is_person and not self._prev_is_person:
+        if (is_person and not self._prev_is_person) or (is_known_person and not self._prev_is_known_person):
             self._person_history.extendleft([person]*self._deque_size)
 
         if not is_person:
             result = QueryPersonResult(is_person=False, is_known_person=False, id=-1, confidence=0, face_rect=None, talkingness=0)
         else:
-
             for p in self._person_history:
                 if p.is_person:
                     last_person = p
@@ -86,7 +88,7 @@ class AveragingEngine(AbstractEngine):
 
             result = QueryPersonResult(
                 is_person=True,
-                is_known_person=(person_id != -1),
+                is_known_person=is_known_person,
                 id=person_id,
                 confidence=self._last_confidence,
                 face_rect=self._last_rect,
@@ -94,6 +96,7 @@ class AveragingEngine(AbstractEngine):
             )
 
         self._prev_is_person = is_person
+        self._prev_is_known_person = is_known_person
 
         self._queryPersonLock.release()
         return result

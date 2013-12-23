@@ -23,15 +23,16 @@ class FaceFinder(AbstractFaceFinder):
     def __init__(self):
         self.face_detector = cv2.CascadeClassifier("/usr/share/opencv/haarcascades/haarcascade_frontalface_alt.xml")
         
-    def findFacesInImage(self, img):
-        min_face_width = img.shape[1]/5
+    def findFacesInImage(self, img, scale_factor=1.1, min_face_width=None):
+        if min_face_width is None:
+            min_face_width = img.shape[1]/5
         min_face = (min_face_width, min_face_width)
-        rects = self.face_detector.detectMultiScale(img, 1.1, 4, cv2.cv.CV_HAAR_SCALE_IMAGE, minSize=min_face)
+        rects = self.face_detector.detectMultiScale(img, scale_factor, 4, cv2.cv.CV_HAAR_SCALE_IMAGE, minSize=min_face)
         rects = [util.Rect(r) for r in rects]
         return rects
 
-    def findLargestFaceInImage(self, img):
-        rects = self.findFacesInImage(img)
+    def findLargestFaceInImage(self, img, scale_factor=1.1, min_face_width=None):
+        rects = self.findFacesInImage(img, scale_factor=scale_factor, min_face_width=min_face_width)
         return util.largestOfRects(rects)
 
 FaceFinder1 = FaceFinder
