@@ -17,7 +17,7 @@ class LBPHIdentifier(object):
         
         self.model_file = os.path.join(data_dir, 'face_rec_model')
         
-        self.cv_face_rec = cv2.createLBPHFaceRecognizer(threshold=80)
+        self.cv_face_rec = cv2.createLBPHFaceRecognizer(threshold=100)
         self.trained = False
         try:
             if not os.path.exists(self.model_file):
